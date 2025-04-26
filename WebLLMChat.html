@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>On-Device LLM Chat (Compatible Small Model)</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        #chatbox { flex-grow: 1; overflow-y: auto; padding: 10px; border-bottom: 1px solid #ccc; }
+        .message { margin-bottom: 10px; }
+        .user-message { text-align: right; color: blue; }
+        .bot-message { text-align: left; color: green; }
+        #inputarea { display: flex; padding: 10px; }
+        #promptInput { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 10px; }
+        #sendButton { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #sendButton:disabled { background-color: #ccc; cursor: not-allowed; }
+        #loadingStatus { padding: 10px; text-align: center; color: gray; }
+    </style>
+</head>
+<body>
+
+    <div id="chatbox">
+        <div id="loadingStatus">Loading model...</div>
+    </div>
+
+    <div id="inputarea">
+        <input type="text" id="promptInput" placeholder="Ask the LLM...">
+        <button id="sendButton" disabled>Send</button>
+    </div>
+
+    <script type="module">
+        import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
+
+        // Select a small model known to have broader WebGPU compatibility (doesn't require shader-f16).
+        // "Qwen2.5-0.5B-Instruct-q4f32_1-MLC" is a good option for quick testing.
+        // You can explore other supported models in the WebLLM documentation or by
+        // inspecting `webllm.prebuiltAppConfig.model_list` in the browser's console
+        // after the library has loaded (look for models not listing 'shader-f16' under required features).
+        const selectedModel = "Qwen2.5-0.5B-Instruct-q4f32_1-MLC";
+
+        let engine;
+        const chatbox = document.getElementById('chatbox');
+        const promptInput = document.getElementById('promptInput');
+        const sendButton = document.getElementById('sendButton');
+        const loadingStatus = document.getElementById('loadingStatus');
+
+        async function initializeChat() {
+            try {
+                // Clear previous messages if any and reset loading status
+                chatbox.innerHTML = '<div id="loadingStatus">Loading model...</div>';
+                const currentLoadingStatus = document.getElementById('loadingStatus');
+
+                // Check if WebGPU is available
+                if (!navigator.gpu) {
+                    currentLoadingStatus.textContent = "Your browser does not support WebGPU, which is required to run this LLM. Please use a modern browser like Chrome, Edge, or Firefox Nightly.";
+                    console.error("WebGPU not supported.");
+                    return;
+                }
+
+                currentLoadingStatus.textContent = `Loading model: ${selectedModel}...`;
+
+                engine = await CreateMLCEngine(selectedModel, {
+                    initProgressCallback: (report) => {
+                        currentLoadingStatus.textContent = report.text;
+                    }
+                });
+                currentLoadingStatus.textContent = "Model loaded. You can now chat!";
+                sendButton.disabled = false;
+            } catch (error) {
+                console.error("Failed to load model:", error);
+                const currentLoadingStatus = document.getElementById('loadingStatus');
+                currentLoadingStatus.textContent = `Failed to load model: ${error.message}. This could be due to a missing WebGPU feature or the model not being available. See console for more details.`;
+            }
+        }
+
+        async function sendMessage() {
+            const prompt = promptInput.value.trim();
+            if (!prompt || !engine) return;
+
+            // Display user message
+            appendMessage(prompt, 'user-message');
+            promptInput.value = '';
+            sendButton.disabled = true;
+
+            try {
+                // Display a placeholder for the bot's response
+                const botMessageElement = appendMessage("...", 'bot-message');
+
+                const reply = await engine.chat.completions.create({
+                    messages: [{ role: "user", content: prompt }],
+                    stream: true, // Enable streaming for better user experience
+                });
+
+                let botResponse = "";
+                for await (const chunk of reply) {
+                    if (chunk.choices[0].delta && chunk.choices[0].delta.content) {
+                        botResponse += chunk.choices[0].delta.content;
+                        botMessageElement.textContent = botResponse;
+                        // Auto-scroll to the latest message
+                        chatbox.scrollTop = chatbox.scrollHeight;
+                    }
+                }
+                 botMessageElement.textContent = botResponse; // Ensure final text is set
+
+            } catch (error) {
+                console.error("Error during inference:", error);
+                appendMessage("Error: Could not get response from LLM.", 'bot-message');
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        function appendMessage(text, senderClass) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', senderClass);
+            messageElement.textContent = text;
+            chatbox.appendChild(messageElement);
+            chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll
+            return messageElement; // Return element to update for streaming
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        promptInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize the chat when the page loads
+        initializeChat();
+
+    </script>
+
+</body>
+</html>
