@@ -1,110 +1,360 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>On-Device LLM Chat (Compatible Small Model)</title>
+    <title>On-Device LLM Chat</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        #chatbox { flex-grow: 1; overflow-y: auto; padding: 10px; border-bottom: 1px solid #ccc; }
-        .message { margin-bottom: 10px; }
-        .user-message { text-align: right; color: blue; }
-        .bot-message { text-align: left; color: green; }
-        #inputarea { display: flex; padding: 10px; }
-        #promptInput { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 10px; }
-        #sendButton { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        #sendButton:disabled { background-color: #ccc; cursor: not-allowed; }
-        #loadingStatus { padding: 10px; text-align: center; color: gray; }
+        :root {
+            --primary-color: #10a37f;
+            --primary-hover: #0e8e6d;
+            --user-bg: #10a37f;
+            --bot-bg: #f5f6f7;
+            --text-color: #333333;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #fafafa;
+            color: var(--text-color);
+        }
+
+        #modelSelection {
+            padding: 12px 20px;
+            background-color: white;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        #modelSelection label {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        #modelSelection select {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        #modelSelection select:hover {
+            border-color: var(--primary-color);
+        }
+
+        #currentModelDisplay {
+            font-size: 0.9em;
+            color: #666;
+            margin-left: auto;
+        }
+
+        #chatbox {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        .user-message {
+            background-color: var(--user-bg);
+            color: white;
+            align-self: flex-end;
+            border-radius: 12px 12px 0 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .bot-message {
+            background-color: var(--bot-bg);
+            align-self: flex-start;
+            border-radius: 12px 12px 12px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        #inputarea {
+            display: flex;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            gap: 12px;
+        }
+
+        #promptInput {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        #promptInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+        }
+
+        #sendButton {
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        #sendButton:disabled {
+            background-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 23px;
+            padding: 12px 16px;
+            background-color: var(--bot-bg);
+            border-radius: 12px;
+            align-self: flex-start;
+            color: #666;
+            font-style: italic;
+        }
+
+        .dot-flashing {
+            position: relative;
+            width: 10px;
+            height: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            color: #94a3b8;
+            animation: dotFlashing 1s infinite linear;
+        }
+
+        .dot-flashing::before,
+        .dot-flashing::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #94a3b8;
+            color: #94a3b8;
+        }
+
+        .dot-flashing::before {
+            left: -15px;
+            animation: dotFlashing 1s infinite linear;
+            animation-delay: 0s;
+        }
+
+        .dot-flashing::after {
+            left: 15px;
+            animation: dotFlashing 1s infinite linear;
+            animation-delay: 0.2s;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes dotFlashing {
+            0% {
+                background-color: #94a3b8;
+            }
+
+            50%,
+            100% {
+                background-color: rgba(148, 163, 184, 0.2);
+            }
+        }
+
+        #loadingStatus {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
     </style>
 </head>
+
 <body>
+
+    <div id="modelSelection">
+        <label for="modelSelect">Select Model:</label>
+        <select id="modelSelect">
+        </select>
+        <span id="currentModelDisplay">Loading...</span>
+    </div>
 
     <div id="chatbox">
         <div id="loadingStatus">Loading model...</div>
     </div>
 
     <div id="inputarea">
-        <input type="text" id="promptInput" placeholder="Ask the LLM...">
+        <input type="text" id="promptInput" placeholder="Ask the AI...">
         <button id="sendButton" disabled>Send</button>
     </div>
 
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-        // Select a small model known to have broader WebGPU compatibility (doesn't require shader-f16).
-        // "Qwen2.5-0.5B-Instruct-q4f32_1-MLC" is a good option for quick testing.
-        // You can explore other supported models in the WebLLM documentation or by
-        // inspecting `webllm.prebuiltAppConfig.model_list` in the browser's console
-        // after the library has loaded (look for models not listing 'shader-f16' under required features).
-        const selectedModel = "Qwen2.5-0.5B-Instruct-q4f32_1-MLC";
+        const availableModels = [
+            { id: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC", name: "Qwen 0.5B" },
+            { id: "Llama-3.2-1B-Instruct-q4f32_1-MLC", name: "Llama 3.2 1B" },
+            { id: "Llama-3.2-3B-Instruct-q4f32_1-MLC", name: "Llama 3.2 3B" }
+        ];
 
         let engine;
         const chatbox = document.getElementById('chatbox');
         const promptInput = document.getElementById('promptInput');
         const sendButton = document.getElementById('sendButton');
         const loadingStatus = document.getElementById('loadingStatus');
+        const modelSelect = document.getElementById('modelSelect');
+        const currentModelDisplay = document.getElementById('currentModelDisplay');
 
-        async function initializeChat() {
+        function populateModelSelect() {
+            modelSelect.innerHTML = '';
+            availableModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.textContent = model.name;
+                if (model.id === availableModels[0].id) {
+                    option.selected = true;
+                }
+                modelSelect.appendChild(option);
+            });
+        }
+
+        async function initializeChat(modelId) {
+            sendButton.disabled = true;
+            promptInput.disabled = true;
+            modelSelect.disabled = true;
+            const selectedModelName = availableModels.find(m => m.id === modelId)?.name || modelId;
+            currentModelDisplay.textContent = `Loading ${selectedModelName}...`;
+
+            chatbox.innerHTML = '<div id="loadingStatus"></div>';
+            const currentLoadingStatus = document.getElementById('loadingStatus');
+            currentLoadingStatus.textContent = `Loading model: ${selectedModelName}...`;
+
+            if (engine) {
+                currentLoadingStatus.textContent = "Releasing previous model...";
+                await engine.unload();
+                engine = undefined;
+            }
+
             try {
-                // Clear previous messages if any and reset loading status
-                chatbox.innerHTML = '<div id="loadingStatus">Loading model...</div>';
-                const currentLoadingStatus = document.getElementById('loadingStatus');
-
-                // Check if WebGPU is available
                 if (!navigator.gpu) {
-                    currentLoadingStatus.textContent = "Your browser does not support WebGPU, which is required to run this LLM. Please use a modern browser like Chrome, Edge, or Firefox Nightly.";
+                    currentLoadingStatus.textContent = "WebGPU not supported - use Chrome/Edge/Firefox Nightly";
+                    currentModelDisplay.textContent = "Error";
                     console.error("WebGPU not supported.");
                     return;
                 }
 
-                currentLoadingStatus.textContent = `Loading model: ${selectedModel}...`;
-
-                engine = await CreateMLCEngine(selectedModel, {
+                engine = await CreateMLCEngine(modelId, {
                     initProgressCallback: (report) => {
                         currentLoadingStatus.textContent = report.text;
-                    }
+                    },
                 });
-                currentLoadingStatus.textContent = "Model loaded. You can now chat!";
-                sendButton.disabled = false;
+
+                currentLoadingStatus.textContent = "Model loaded successfully.";
+                currentModelDisplay.textContent = `Model: ${selectedModelName}`;
+
             } catch (error) {
                 console.error("Failed to load model:", error);
-                const currentLoadingStatus = document.getElementById('loadingStatus');
-                currentLoadingStatus.textContent = `Failed to load model: ${error.message}. This could be due to a missing WebGPU feature or the model not being available. See console for more details.`;
+                currentLoadingStatus.textContent = `Failed to load model: ${error.message}`;
+                currentModelDisplay.textContent = "Loading failed";
+            } finally {
+                sendButton.disabled = !engine;
+                promptInput.disabled = !engine;
+                modelSelect.disabled = false;
             }
         }
 
         async function sendMessage() {
             const prompt = promptInput.value.trim();
-            if (!prompt || !engine) return;
+            if (!prompt || !engine || sendButton.disabled) return;
 
-            // Display user message
             appendMessage(prompt, 'user-message');
             promptInput.value = '';
             sendButton.disabled = true;
 
             try {
-                // Display a placeholder for the bot's response
-                const botMessageElement = appendMessage("...", 'bot-message');
+                const thinkingElement = document.createElement('div');
+                thinkingElement.className = 'message bot-message';
+                thinkingElement.innerHTML = `
+                    <div class="thinking-indicator">
+                        <div class="thinking-indicator">
+                            Generating response 
+                            <div class="dot-flashing"></div>
+                        </div>
+                    </div>
+                `;
+                chatbox.appendChild(thinkingElement);
+                chatbox.scrollTop = chatbox.scrollHeight;
 
                 const reply = await engine.chat.completions.create({
                     messages: [{ role: "user", content: prompt }],
-                    stream: true, // Enable streaming for better user experience
+                    stream: true,
                 });
 
                 let botResponse = "";
                 for await (const chunk of reply) {
-                    if (chunk.choices[0].delta && chunk.choices[0].delta.content) {
+                    if (chunk.choices[0].delta?.content) {
                         botResponse += chunk.choices[0].delta.content;
-                        botMessageElement.textContent = botResponse;
-                        // Auto-scroll to the latest message
+                        thinkingElement.innerHTML = `
+                            <div class="bot-message-content">${botResponse}</div>
+                        `;
                         chatbox.scrollTop = chatbox.scrollHeight;
                     }
                 }
-                 botMessageElement.textContent = botResponse; // Ensure final text is set
+                thinkingElement.innerHTML = `<div class="bot-message-content">${botResponse}</div>`;
 
             } catch (error) {
                 console.error("Error during inference:", error);
-                appendMessage("Error: Could not get response from LLM.", 'bot-message');
+                appendMessage("Error generating response", 'bot-message');
             } finally {
                 sendButton.disabled = false;
             }
@@ -112,24 +362,24 @@
 
         function appendMessage(text, senderClass) {
             const messageElement = document.createElement('div');
-            messageElement.classList.add('message', senderClass);
-            messageElement.textContent = text;
+            messageElement.className = `message ${senderClass}`;
+            messageElement.innerHTML = senderClass === 'bot-message'
+                ? `<div class="bot-message-content">${text}</div>`
+                : text;
             chatbox.appendChild(messageElement);
-            chatbox.scrollTop = chatbox.scrollHeight; // Auto-scroll
-            return messageElement; // Return element to update for streaming
+            chatbox.scrollTop = chatbox.scrollHeight;
+            return messageElement;
         }
 
         sendButton.addEventListener('click', sendMessage);
-        promptInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
+        promptInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendButton.disabled) sendMessage();
         });
+        modelSelect.addEventListener('change', () => initializeChat(modelSelect.value));
 
-        // Initialize the chat when the page loads
-        initializeChat();
-
+        populateModelSelect();
+        initializeChat(modelSelect.value);
     </script>
-
 </body>
+
 </html>

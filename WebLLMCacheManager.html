@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Cache Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-6">
+    <div class="container mx-auto p-8 bg-white rounded-lg shadow-md">
+        <h1 class="text-3xl font-semibold text-blue-600 text-center mb-8">Manage Models</h1>
+
+        <div id="model-list-container" class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Downloaded Models</h2>
+            <ul id="model-list" class="space-y-3">
+            </ul>
+            <p id="no-models" class="text-gray-500 italic">No specific model files found in the cache.</p>
+        </div>
+
+        <div id="delete-model-container" class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Delete Model</h2>
+            <div class="flex items-center space-x-4">
+                <select id="model-select"
+                    class="block w-full p-2.5 text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </select>
+                <button id="delete-button"
+                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md focus:outline-none focus:shadow-outline">
+                    Delete
+                </button>
+            </div>
+            <p id="delete-message" class="mt-4 text-gray-600"></p>
+        </div>
+    </div>
+
+    <script>
+        async function listDownloadedModels() {
+            const modelList = document.getElementById('model-list');
+            const noModelsMessage = document.getElementById('no-models');
+            const modelSelect = document.getElementById('model-select');
+
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    let foundModels = [];
+
+                    // at the time of writing, the cacheName is 'webllm/model' so there is no need for the double loop below
+                    for (const cacheName of cacheNames) {
+                        console.log(`cacheName : ${cacheName}`)
+                        const cache = await caches.open(cacheName);
+                        const requests = await cache.keys();
+
+                        for (const request of requests) {
+                            // Try to extract the model name from the request URL or other properties
+                            console.log(`url : ${request.url}`)
+
+                            const urlParts = request.url.split('/');
+                            const potentialModelName = urlParts[urlParts.length - 1]; // Last part of the URL
+
+                            // This is a very basic attempt. You might need more sophisticated logic
+                            // based on how the model names are structured in the URLs.
+                            if (potentialModelName.includes('-MLC') || potentialModelName.includes('.safetensors')) {
+                                if (!foundModels.includes(potentialModelName)) {
+                                    foundModels.push(potentialModelName);
+                                }
+                            } else if (cacheName.toLowerCase().includes('model')) {
+                                // If the cache name hints at models, consider other parts of the URL
+                                for (const part of urlParts) {
+                                    //console.log(`part : ${part}`)
+
+                                    if (part.includes('-MLC') || part.includes('.safetensors')) {
+                                        if (!foundModels.includes(part)) {
+                                            foundModels.push(part);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (foundModels.length === 0) {
+                        noModelsMessage.textContent = "No specific model files found in the cache.";
+                        modelSelect.disabled = true;
+                        document.getElementById('delete-button').disabled = true;
+                        modelList.innerHTML = '';
+                        modelSelect.innerHTML = '';
+                        return;
+                    } else {
+                        noModelsMessage.textContent = "";
+                        modelSelect.disabled = false;
+                        document.getElementById('delete-button').disabled = false;
+                    }
+
+                    modelList.innerHTML = '';
+                    modelSelect.innerHTML = '<option value="">-- Select a model --</option>';
+
+                    foundModels.forEach(modelName => {
+                        const li = document.createElement('li');
+                        li.className = "bg-gray-50 p-4 rounded-md shadow-sm";
+                        li.textContent = modelName;
+                        modelList.appendChild(li);
+
+                        const option = document.createElement('option');
+                        option.value = modelName;
+                        option.textContent = modelName;
+                        modelSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error listing models:', error);
+                    modelList.innerHTML = `<li class="text-red-500">Error: ${error.message}</li>`;
+                    modelSelect.disabled = true;
+                    document.getElementById('delete-button').disabled = true;
+                }
+            } else {
+                modelList.innerHTML = `<li class="text-red-500">Error: Caches API is not supported in this browser.</li>`;
+                modelSelect.disabled = true;
+                document.getElementById('delete-button').disabled = true;
+            }
+        }
+
+        async function deleteModel() {
+            const modelSelect = document.getElementById('model-select');
+            const deleteMessage = document.getElementById('delete-message');
+            const selectedModel = modelSelect.value;
+
+            if (!selectedModel) {
+                deleteMessage.textContent = "Please select a model to delete.";
+                return;
+            }
+
+            if ('caches' in window) {
+                try {
+                    let deletedSomething = false;
+                    const cacheNames = await caches.keys();
+
+                    for (const cacheName of cacheNames) {
+                        const cache = await caches.open(cacheName);
+                        const requests = await cache.keys();
+
+                        for (const request of requests) {
+                            const urlParts = request.url.split('/');
+                            const potentialModelName = urlParts[urlParts.length - 1];
+
+
+                            if (request.url.indexOf(selectedModel) != -1) {
+                                console.log(`cacheName: ${cacheName} - request.url ${request.url}`)
+                                const deleted = await cache.delete(request);
+                                if (deleted) {
+                                    deletedSomething = true;
+                                }
+                            }
+                        }
+                    }
+
+                    if (deletedSomething) {
+                        deleteMessage.textContent = `Model "${selectedModel}" deleted successfully.`;
+                        listDownloadedModels(); // Refresh the list
+                    } else {
+                        deleteMessage.textContent = `Model "${selectedModel}" not found in cache.`;
+                    }
+                } catch (error) {
+                    console.error('Error deleting model:', error);
+                    deleteMessage.textContent = `Error deleting model: ${error.message}`;
+                }
+            } else {
+                deleteMessage.textContent = "Error: Caches API is not supported in this browser.";
+            }
+        }
+
+        document.getElementById('delete-button').addEventListener('click', deleteModel);
+
+        // Initial listing of models
+        listDownloadedModels();
+    </script>
+</body>
+
+</html>
