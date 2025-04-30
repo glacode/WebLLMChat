@@ -41,9 +41,20 @@ When you first open `WebLLMChat.html` with a specific model selected, the MLC-AI
 
 If you switch to a different model, it will require an initial download for that new model as well, which will then also be cached. Ensure you have sufficient local disk space if you plan to try multiple models, as each cached model will consume storage.
 
-## Customization
+## Available Models & Customization
 
-The model used is defined by the `selectedModel` variable in the `<script>` tag:
+The application provides a dropdown selector with these currently supported models:
 
-```javascript
-const selectedModel = "Qwen2.5-0.5B-Instruct-q4f32_1-MLC";
+|            Model ID                  | Display Name   |
+|--------------------------------------|----------------|
+| `Qwen2.5-0.5B-Instruct-q4f32_1-MLC` | Qwen 0.5B      |
+| `Llama-3.2-1B-Instruct-q4f32_1-MLC` | Llama 3.2 1B   |
+| `Qwen2.5-3B-Instruct-q4f32_1-MLC`   | Qwen 2.5 3B    |
+| `Llama-3.2-3B-Instruct-q4f32_1-MLC` | Llama 3.2 3B   |
+
+### Expanding Model Options
+Advanced users can add more models by referencing:
+- **[Official Model Config](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts)**  
+  (Raw JSON list, updated regularly)  
+- **[Community-Maintained Table](https://github.com/mlc-ai/web-llm/issues/683)**  
+  (Human-readable format with performance notes)  
