@@ -7,26 +7,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     permissions:
-      pages: write
-      id-token: write
+      pages: write       # needed by configure-pages & deploy-pages
+      id-token: write    # needed by configure-pages
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Verify HTML files exist
-        run: ls *.html  # Simple check to confirm the files are present
+        run: ls *.html
 
       - name: Upload HTML files
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .  # Upload the entire repo root
-          # Exclude everything except HTML files
+          path: .                 # repo root
           exclude: |
             *
             !*.html
-          retention-days: 1
 
-      - name: Deploy
-        uses: actions/deploy-pages@v3
+      - name: Configure Pages
+        uses: actions/configure-pages@v2
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        # (no additional inputs needed)
