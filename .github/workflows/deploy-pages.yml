@@ -15,10 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: List all files in root
+        run: ls -a
+
       - name: Upload HTML files
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '*.html'  # Explicitly uploads only HTML files
+          path: './*.html' # Explicitly look in the current directory
 
       - name: Deploy
         uses: actions/deploy-pages@v3
