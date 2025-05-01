@@ -15,13 +15,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: List all files in root
-        run: ls -a
+      - name: Verify HTML files exist
+        run: ls *.html  # Simple check to confirm the files are present
 
       - name: Upload HTML files
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './*.html' # Explicitly look in the current directory
+          path: .  # Upload the entire repo root
+          # Exclude everything except HTML files
+          exclude: |
+            *
+            !*.html
+          retention-days: 1
 
       - name: Deploy
         uses: actions/deploy-pages@v3
