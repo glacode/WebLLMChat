@@ -195,40 +195,44 @@
             font-style: italic;
         }
 
+        .dots-container {
+            display: flex;
+            gap: 5px;
+            /* Adjust the spacing between dots */
+        }
+
         .dot-flashing {
-            position: relative;
             width: 10px;
             height: 10px;
-            margin-top: 5px;
-            border-radius: 5px;
+            border-radius: 50%;
             background-color: #888;
-            color: #888;
-            animation: dotFlashing 1s infinite linear;
+            animation: dotFlashing 2s infinite ease-in-out;
         }
 
-        .dot-flashing::before,
-        .dot-flashing::after {
-            content: '';
-            display: inline-block;
-            position: absolute;
-            top: 0;
-            width: 10px;
-            height: 10px;
-            border-radius: 5px;
-            background-color: #888;
-            color: #888;
+        .dot-flashing:nth-child(1) {
+            animation-delay: 0s;
         }
 
-        .dot-flashing::before {
-            left: -15px;
-            animation: dotFlashing 1s infinite linear;
-            animation-delay: -0.2s;
+        .dot-flashing:nth-child(2) {
+            animation-delay: 0.3s;
         }
 
-        .dot-flashing::after {
-            left: 15px;
-            animation: dotFlashing 1s infinite linear;
-            animation-delay: 0.2s;
+        .dot-flashing:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes dotFlashing {
+            0% {
+                opacity: 1;
+            }
+
+            40% {
+                opacity: 0.5;
+            }
+
+            80% {
+                opacity: 0;
+            }
         }
 
         @keyframes messageAppear {
@@ -240,17 +244,6 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
-            }
-        }
-
-        @keyframes dotFlashing {
-            0% {
-                background-color: #888;
-            }
-
-            50%,
-            100% {
-                background-color: rgba(136, 136, 136, 0.2);
             }
         }
 
@@ -374,10 +367,12 @@
                 thinkingElement.className = 'message bot-message';
                 thinkingElement.innerHTML = `
                     <div class="thinking-indicator">
-                        <div class="thinking-indicator">
-                            Generating response
-                            <div class="dot-flashing"></div>
-                        </div>
+                        Generating response
+                            <div class="dots-container">
+                                <div class="dot-flashing"></div>
+                                <div class="dot-flashing"></div>
+                                <div class="dot-flashing"></div>
+                            </div>
                     </div>
                 `;
                 chatbox.appendChild(thinkingElement);
