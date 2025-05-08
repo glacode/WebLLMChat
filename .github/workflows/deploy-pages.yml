@@ -9,27 +9,30 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      pages: write       # needed by configure-pages & deploy-pages
-      id-token: write    # needed by configure-pages
+      pages: write      # needed by configure-pages & deploy-pages
+      id-token: write   # needed by configure-pages
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify HTML files exist
-        run: ls *.html
+      - name: Prepare files for deployment
+        run: |
+          mkdir _site # Create a directory to hold the files to be published
+          cp WebLLMChat.html _site/index.html
+          cp WebLLMCacheManager.html _site/WebLLMCacheManager.html
+          echo "Files prepared for deployment:"
+          ls _site
 
-      - name: Upload HTML files
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .                 # repo root
-          exclude: |
-            *
-            !*.html
+          # Upload only the '_site' directory
+          path: './_site'
 
       - name: Configure Pages
-        uses: actions/configure-pages@v2
+        uses: actions/configure-pages@v4 # Updated to v4 for latest features/fixes
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
-        # (no additional inputs needed)
