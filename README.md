@@ -1,8 +1,14 @@
-# Browser-Based On-Device LLM Chat with MLC-AI WebLLM
+# Private AI Chat - Offline & Serverless AI in One HTML File
 
 This project is a simple, single-page web application (`WebLLMChat.html`) that demonstrates how to run a small Large Language Model (LLM) directly within your web browser using the [MLC-AI WebLLM project](https://github.com/mlc-ai/web-llm).
 
 Unlike traditional web-based LLM interfaces that rely on a backend server, this application performs the LLM inference entirely on your device, leveraging WebGPU for acceleration. This provides a private, server-less chat experience.
+
+<p align="center">
+  <a href="https://glacode.github.io/WebLLMChat/">
+    <img src="https://img.shields.io/badge/Live%20Demo-darkgreen" alt="Live Demo">
+  </a>
+</p>
 
 ## Features
 
@@ -12,6 +18,8 @@ Unlike traditional web-based LLM interfaces that rely on a backend server, this 
 * Defaults to a small, compatible model (`Qwen2.5-0.5B-Instruct-q4f32_1-MLC`) suitable for wider WebGPU compatibility.
 * Streams the LLM's response as it is generated.
 * Includes loading status and basic error handling.
+
+![Project Screenshot](webllmchat.png)
 
 ## Requirements
 
