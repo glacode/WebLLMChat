@@ -6,7 +6,7 @@ Unlike traditional web-based LLM interfaces that rely on a backend server, this 
 
 <p align="center">
   <a href="https://glacode.github.io/WebLLMChat/">
-    <img src="https://img.shields.io/badge/Live%20Demo-darkgreen" alt="Live Demo">
+    <img src="https://img.shields.io/badge/Live%20Demo-455a64" alt="Live Demo">
   </a>
 </p>
 
