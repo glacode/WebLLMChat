@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./WebChatLogo.png"  alt="Logo" width="100">
+</p>
+
 # Private AI Chat - Offline & Serverless AI in One HTML File
 
 This project is a simple, single-page web application (`WebLLMChat.html`) that demonstrates how to run a small Large Language Model (LLM) directly within your web browser using the [MLC-AI WebLLM project](https://github.com/mlc-ai/web-llm).
