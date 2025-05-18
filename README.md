@@ -69,4 +69,15 @@ Advanced users can add more models by referencing:
 - **[Official Model Config](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts)**  
   (Raw JSON list, updated regularly)  
 - **[Community-Maintained Table](https://github.com/mlc-ai/web-llm/issues/683)**  
-  (Human-readable format with performance notes)  
+  (Human-readable format with performance notes)
+
+## Cache Manager
+
+To help manage downloaded model files stored in the browser's cache (IndexedDB/CacheStorage), this project includes a standalone utility called `WebLLMCacheManager.html`.
+
+This tool lists cached models and allows users to **delete unwanted entries** to free up storage space or troubleshoot issues. It's particularly useful after experimenting with multiple large models.
+
+**Usage**:  
+Just open the `WebLLMCacheManager.html` file in your browser. It will display all cached entries and offer deletion controls.
+
+![Cache Manager Screenshot](cachemanager.png)
